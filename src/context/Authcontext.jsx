@@ -1,10 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signOut, 
-  onAuthStateChanged 
+  signOut,
+  onAuthStateChanged,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
@@ -19,8 +22,6 @@ export function AuthProvider({ children }) {
 
   async function signup(email, password, userName) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Create user profile in Firestore
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       userName,
       email,
@@ -31,7 +32,6 @@ export function AuthProvider({ children }) {
       createdAt: new Date().toISOString(),
       authProvider: 'password'
     });
-    
     return userCredential.user;
   }
 
@@ -43,12 +43,8 @@ export function AuthProvider({ children }) {
   async function loginWithGoogle() {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    
-    // Check if user exists in Firestore
     const userDoc = await getDoc(doc(db, 'users', user.uid));
-    
     if (!userDoc.exists()) {
-      // Create new user profile
       await setDoc(doc(db, 'users', user.uid), {
         userName: user.displayName || user.email.split('@')[0],
         email: user.email,
@@ -61,12 +57,18 @@ export function AuthProvider({ children }) {
         photoURL: user.photoURL
       });
     }
-    
     return user;
   }
 
   async function logout() {
     return signOut(auth);
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    if (!currentUser) throw new Error('Not logged in');
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+    await updatePassword(currentUser, newPassword);
   }
 
   async function updateUserData(updates) {
@@ -89,15 +91,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      currentUser, 
-      userData, 
-      signup, 
-      login, 
+    <AuthContext.Provider value={{
+      currentUser,
+      userData,
+      signup,
+      login,
       loginWithGoogle,
-      logout, 
-      updateUserData, 
-      loading 
+      logout,
+      changePassword,
+      updateUserData,
+      loading
     }}>
       {!loading && children}
     </AuthContext.Provider>

@@ -52,9 +52,12 @@ export default function Dashboard() {
               <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-red-600 transition-colors">
                 <LogOut className="w-5 h-5" />
                 <span className="hidden sm:inline">Logout</span>
-              </button>
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">{userData.userName?.charAt(0) || 'U'}</div>
-            </div>
+              </button><button 
+  onClick={() => navigate('/profile')}
+  className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-indigo-300 transition-all"
+>
+  {userData?.userName?.charAt(0) || 'U'}
+</button></div>
           </div>
         </div>
       </nav>
